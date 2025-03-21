@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/isaacphi/mcp-language-server/internal/tools"
-	"github.com/metoro-io/mcp-golang"
+	mcp_golang "github.com/metoro-io/mcp-golang"
 )
 
 type ReadDefinitionArgs struct {
@@ -35,6 +35,86 @@ type GetCodeLensArgs struct {
 type ExecuteCodeLensArgs struct {
 	FilePath string `json:"filePath" jsonschema:"required,description=The path to the file containing the code lens to execute"`
 	Index    int    `json:"index" jsonschema:"required,description=The index of the code lens to execute (from get_codelens output), 1 indexed"`
+}
+
+type Prompt struct {
+	Symbol string `json:"symbol"`
+}
+
+func (s *server) registerPrompts() error {
+	err := s.mcpServer.RegisterPrompt("read-definition", "call the read_definition tool TODO", func(argument Prompt) (*mcp_golang.PromptResponse, error) {
+		text, err := tools.ReadDefinition(s.ctx, s.lspClient, argument.Symbol, true)
+		if err != nil {
+			return mcp_golang.NewPromptResponse(
+					"Error response",
+					mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(fmt.Sprintf("There is an error reading the definition for %s", argument.Symbol)), mcp_golang.RoleUser)),
+				nil
+		}
+		return mcp_golang.NewPromptResponse(
+				"Read definition prompt response",
+				mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(text), mcp_golang.RoleUser)),
+			nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to register read-definition prompt: %v", err)
+	}
+
+	err = s.mcpServer.RegisterPrompt("find-references", "call the find_references tool TODO", func(argument Prompt) (*mcp_golang.PromptResponse, error) {
+		text, err := tools.FindReferences(s.ctx, s.lspClient, argument.Symbol, true)
+		if err != nil {
+			return mcp_golang.NewPromptResponse(
+					"Error response",
+					mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(fmt.Sprintf("There is an error finding references for %s", argument.Symbol)), mcp_golang.RoleUser)),
+				nil
+		}
+		return mcp_golang.NewPromptResponse(
+				"Find references prompt response",
+				mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(text), mcp_golang.RoleUser)),
+			nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to register find-references prompt: %v", err)
+	}
+
+	err = s.mcpServer.RegisterPrompt("get-codelens", "call the get_codelens tool TODO", func(argument Prompt) (*mcp_golang.PromptResponse, error) {
+		text, err := tools.GetCodeLens(s.ctx, s.lspClient, argument.Symbol)
+		if err != nil {
+			return mcp_golang.NewPromptResponse(
+					"Error response",
+					mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(fmt.Sprintf("There is an error getting codelens for file %s", argument.Symbol)), mcp_golang.RoleUser)),
+				nil
+		}
+		return mcp_golang.NewPromptResponse(
+				"Get codelens prompt response",
+				mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(text), mcp_golang.RoleUser)),
+			nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register get-codelens prompt: %v", err)
+	}
+
+	err = s.mcpServer.RegisterPrompt("get-diagnostics", "call the get_diagnostics tool TODO", func(argument Prompt) (*mcp_golang.PromptResponse, error) {
+		text, err := tools.GetDiagnosticsForFile(s.ctx, s.lspClient, argument.Symbol, true, true)
+		if err != nil {
+			return mcp_golang.NewPromptResponse(
+					"Error response",
+					mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(fmt.Sprintf("There is an error getting diagnostics for file %s", argument.Symbol)), mcp_golang.RoleUser)),
+				nil
+		}
+		return mcp_golang.NewPromptResponse(
+				"Get diagnostics prompt response",
+				mcp_golang.NewPromptMessage(mcp_golang.NewTextContent(text), mcp_golang.RoleUser)),
+			nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to register get-diagnostics prompt: %v", err)
+	}
+
+	return nil
+
 }
 
 func (s *server) registerTools() error {

@@ -14,7 +14,7 @@ import (
 
 	"github.com/isaacphi/mcp-language-server/internal/lsp"
 	"github.com/isaacphi/mcp-language-server/internal/watcher"
-	"github.com/metoro-io/mcp-golang"
+	mcp_golang "github.com/metoro-io/mcp-golang"
 	"github.com/metoro-io/mcp-golang/transport/stdio"
 )
 
@@ -114,6 +114,11 @@ func (s *server) start() error {
 	err := s.registerTools()
 	if err != nil {
 		return fmt.Errorf("tool registration failed: %v", err)
+	}
+
+	err = s.registerPrompts()
+	if err != nil {
+		return fmt.Errorf("prompt registration failed: %v", err)
 	}
 
 	return s.mcpServer.Serve()
